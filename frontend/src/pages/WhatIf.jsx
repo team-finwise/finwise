@@ -5,7 +5,6 @@ import ComparisonTable from '../components/ComparisonTable';
 import useStore from '../store/useStore';
 import { whatIf } from '../lib/api';
 import { formatRupee, formatDelta } from '../lib/formatters';
-import AnimatedNumber from '../components/AnimatedNumber';
 
 const SLIDER_CONFIG = [
   { key: 'incomeDelta', label: 'Monthly Income', min: -20000, max: 50000, step: 500, positive: true },
@@ -142,12 +141,9 @@ export default function WhatIf() {
                 style={{
                   color: comparison?.surplusChange >= 0 ? 'var(--green-hover)' : 'var(--red-hover)',
                   fontSize: 22,
-                  transition: 'color 300ms ease',
                 }}
               >
-                {comparison ? (
-                  <AnimatedNumber value={comparison.surplusChange} format={formatDelta} />
-                ) : '—'}
+                {comparison ? formatDelta(comparison.surplusChange) : '—'}
               </div>
               <div className="card-sub mt-1">Monthly difference vs current baseline</div>
             </div>

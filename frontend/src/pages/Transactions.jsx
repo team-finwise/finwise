@@ -301,7 +301,7 @@ export default function Transactions() {
             label="Total Inflow"
             value={summary ? formatRupee(summary.total_income) : '₹0'}
             sub="Salaries and earnings"
-            gradient="mint"
+            status="green"
             icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
@@ -314,7 +314,7 @@ export default function Transactions() {
             label="Total Outflow"
             value={summary ? formatRupee(summary.total_expense + summary.total_debt) : '₹0'}
             sub="Living expenses & debt EMI"
-            gradient="peach"
+            status="amber"
             icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
@@ -327,8 +327,7 @@ export default function Transactions() {
             label="Net Cash Flow"
             value={summary ? formatRupee(Math.abs(summary.net_cash_flow)) : '₹0'}
             sub={summary && summary.net_cash_flow >= 0 ? 'Surplus funds' : 'Net shortfall'}
-            gradient={summary && summary.net_cash_flow >= 0 ? 'mint' : undefined}
-            status={summary && summary.net_cash_flow >= 0 ? undefined : 'red'}
+            status={summary && summary.net_cash_flow >= 0 ? 'green' : 'red'}
             badge={summary && summary.net_cash_flow >= 0 ? 'Surplus' : 'Deficit'}
             icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -342,7 +341,7 @@ export default function Transactions() {
             label="Total Transactions"
             value={summary ? summary.total_count.toString() : '0'}
             sub={`${filteredTransactions.length} matching current filter`}
-            gradient="sand"
+            status="blue"
             icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="3" width="18" height="18" rx="2" />
