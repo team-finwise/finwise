@@ -116,7 +116,10 @@ export default function Assistant() {
 
           {loading && (
             <div className="chat-bubble assistant" style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>
-              Strands Agent is executing financial tools with Ollama (llama3.1)...
+              🤖 Strands Agent is reasoning and executing financial tools with Ollama (llama3.1)...
+              <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.85, fontWeight: 500 }}>
+                Running 8B model on CPU — response will appear shortly...
+              </div>
             </div>
           )}
 

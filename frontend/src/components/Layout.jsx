@@ -135,7 +135,6 @@ export default function Layout({ children, title, subtitle }) {
           >
             {icons.transactions}
             Transactions
-            <span className="badge-soon">Soon</span>
           </NavLink>
 
           <NavLink
@@ -145,7 +144,6 @@ export default function Layout({ children, title, subtitle }) {
           >
             {icons.reports}
             Reports
-            <span className="badge-soon">Soon</span>
           </NavLink>
 
           <span className="sidebar-section-label">Account</span>

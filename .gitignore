@@ -1,8 +1,49 @@
-@"
-.venv/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+env/
+
+# Environment secrets
 .env
 .env.*
 !.env.example
-"@ | Set-Content .gitignore
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+.npm
+.eslintcache
+
+# Databases & local stores
+finwise.db
+*.sqlite3
+*.db
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
