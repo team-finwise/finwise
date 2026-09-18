@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from typing import List, Optional
 from backend.transactions.models import (
     TransactionCreate,
@@ -105,6 +105,7 @@ def reset_transactions():
 from pydantic import BaseModel
 from backend.transactions.bank_parser import (
     parse_csv_statement,
+    parse_pdf_statement,
     parse_sms_statement,
     get_bank_passbook_preset,
 )
@@ -141,6 +142,43 @@ def import_statement(req: StatementImportRequest):
         "imported_count": len(saved),
         "transactions": saved,
         "message": f"Successfully imported {len(saved)} bank transactions",
+    }
+
+
+@router.post("/import-pdf-statement")
+async def import_pdf_statement(statement: UploadFile = File(...)):
+    """Import transactions from an unlocked, text-based PDF bank statement."""
+    filename = statement.filename or "statement.pdf"
+    if not filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Please upload a PDF bank statement.")
+
+    contents = await statement.read()
+    # Keep imports bounded: a typical statement is well under this limit and
+    # the parser reads the whole file in memory to avoid temporary file leaks.
+    if not contents:
+        raise HTTPException(status_code=400, detail="The uploaded PDF is empty.")
+    if len(contents) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="PDF statements must be 15 MB or smaller.")
+
+    try:
+        parsed = parse_pdf_statement(contents)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if not parsed:
+        raise HTTPException(
+            status_code=400,
+            detail="No transactions were found. Use an unlocked, text-based statement PDF with dates, descriptions, and amounts.",
+        )
+
+    saved = [service.create_transaction(TransactionCreate(**item)) for item in parsed]
+    return {
+        "success": True,
+        "imported_count": len(saved),
+        "transactions": saved,
+        "message": f"Successfully imported {len(saved)} transactions from {filename}",
     }
 
 

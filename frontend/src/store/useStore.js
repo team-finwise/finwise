@@ -37,6 +37,8 @@ const useStore = create(
     (set) => ({
       // User inputs
       userName: '',
+      authUser: null,
+      authToken: null,
       profile: defaultProfile,
       goal: defaultGoal,
 
@@ -51,6 +53,10 @@ const useStore = create(
 
       // Actions
       setUserName: (name) => set({ userName: name }),
+
+      setAuth: ({ user, token }) => set({ authUser: user, authToken: token, userName: user?.name || '' }),
+
+      logout: () => set({ authUser: null, authToken: null, results: null, formStep: 1, chatMessages: [] }),
 
       setProfile: (updates) =>
         set((s) => ({ profile: { ...s.profile, ...updates } })),

@@ -284,6 +284,149 @@ def parse_csv_statement(csv_text: str) -> List[Dict[str, Any]]:
     return parsed
 
 
+# PDF statements do not have a universal table structure. Most banks do, however,
+# retain a selectable text layer where each transaction begins with a date. The
+# helpers below turn that text into transaction-sized rows before applying the
+# same narration/category rules used by CSV and SMS imports.
+PDF_DATE_PATTERN = re.compile(
+    r"(?<!\d)(?:0?[1-9]|[12]\d|3[01])[-/](?:0?[1-9]|1[0-2]|[A-Za-z]{3})[-/](?:\d{2}|\d{4})(?!\d)",
+    re.IGNORECASE,
+)
+PDF_AMOUNT_PATTERN = re.compile(
+    r"(?:₹|Rs\.?|INR)?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|(?:₹|Rs\.?|INR)?\s*\d+(?:\.\d{1,2})?",
+    re.IGNORECASE,
+)
+
+
+def _normalise_statement_date(value: str) -> Optional[str]:
+    """Return an ISO date for the common date formats used in Indian statements."""
+    value = value.strip()
+    for fmt in (
+        "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d/%m/%y",
+        "%d-%b-%Y", "%d-%b-%y", "%d/%b/%Y", "%d/%b/%y",
+    ):
+        try:
+            return datetime.strptime(value, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return None
+
+
+def _pdf_rows_from_text(text: str) -> List[str]:
+    """Join wrapped PDF text into rows, with one dated transaction per row."""
+    rows: List[str] = []
+    current = ""
+    for raw_line in text.splitlines():
+        line = re.sub(r"\s+", " ", raw_line).strip()
+        if not line:
+            continue
+        if PDF_DATE_PATTERN.search(line):
+            if current:
+                rows.append(current)
+            current = line
+        elif current:
+            current = f"{current} {line}"
+    if current:
+        rows.append(current)
+    return rows
+
+
+def _parse_pdf_statement_text(text: str) -> List[Dict[str, Any]]:
+    """Parse text extracted from a bank-statement PDF into transaction dicts."""
+    parsed: List[Dict[str, Any]] = []
+    for row in _pdf_rows_from_text(text):
+        date_match = PDF_DATE_PATTERN.search(row)
+        if not date_match:
+            continue
+
+        date_value = _normalise_statement_date(date_match.group(0))
+        after_date = row[date_match.end():].strip(" |:-")
+        if not date_value or not after_date:
+            continue
+
+        amount_candidates = []
+        for match in PDF_AMOUNT_PATTERN.finditer(after_date):
+            raw = re.sub(r"(?i)(₹|rs\.?|inr|,|\s)", "", match.group(0))
+            try:
+                value = abs(float(raw))
+            except ValueError:
+                continue
+            # Reference / UPI IDs can look like numbers after text extraction;
+            # a long unformatted integer is not a realistic statement amount.
+            digits_only = re.sub(r"\D", "", raw)
+            if len(digits_only) >= 7 and "." not in raw and "," not in match.group(0):
+                continue
+            amount_candidates.append((match, value))
+
+        if not amount_candidates:
+            continue
+
+        # A PDF table usually ends with a running balance. The numeric value
+        # immediately before it is the transaction amount. This avoids
+        # importing a running balance as spend/income.
+        amount_match, amount = amount_candidates[-2] if len(amount_candidates) >= 2 else amount_candidates[0]
+        if amount <= 0:
+            continue
+
+        raw_narration = after_date[:amount_match.start()].strip(" |:-")
+        if not raw_narration:
+            # Some PDF generators put narration after amount. Retain the rest
+            # of the row instead of silently discarding that transaction.
+            raw_narration = after_date[amount_match.end():].strip(" |:-")
+        if not raw_narration:
+            raw_narration = "Bank Transaction"
+
+        clean_name, category, tx_type, method = clean_narration(raw_narration)
+        row_lower = row.lower()
+        is_credit = bool(re.search(r"\b(?:cr|credit|credited)\b", row_lower))
+        is_debit = bool(re.search(r"\b(?:dr|debit|debited)\b", row_lower))
+        if is_credit:
+            tx_type = "income"
+            if category == "Other":
+                category = "Salary"
+        elif is_debit and tx_type == "income":
+            tx_type = "expense"
+            if category == "Salary":
+                category = "Other"
+
+        parsed.append({
+            "date": date_value,
+            "description": clean_name,
+            "category": category,
+            "amount": amount,
+            "type": tx_type,
+            "payment_method": method,
+            "notes": f"PDF Bank Statement: {row[:180]}",
+        })
+    return parsed
+
+
+def parse_pdf_statement(pdf_bytes: bytes) -> List[Dict[str, Any]]:
+    """Extract and parse a text-based PDF bank statement.
+
+    Encrypted and image-only/scanned PDFs are reported clearly because they
+    require a password or OCR before their contents can be safely interpreted.
+    """
+    try:
+        from pypdf import PdfReader
+    except ImportError as exc:
+        raise RuntimeError("PDF import is not installed. Run pip install -r requirements.txt.") from exc
+
+    try:
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        if reader.is_encrypted:
+            raise ValueError("This PDF is password-protected. Export an unlocked statement from your bank and try again.")
+        text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError("We could not read this PDF. Please upload a valid bank statement PDF.") from exc
+
+    if not text.strip():
+        raise ValueError("No selectable text was found in this PDF. Upload a text-based statement (not a scanned image) or use CSV.")
+    return _parse_pdf_statement_text(text)
+
+
 def parse_sms_statement(text: str) -> List[Dict[str, Any]]:
     """
     Parse pasted Indian bank transaction SMS messages.

@@ -13,6 +13,7 @@ from backend.database import init_db, get_db
 from backend.transactions import service as trans_service
 from backend.transactions.models import TransactionCreate, TransactionUpdate
 from backend.reports import service as report_service
+from backend.transactions.bank_parser import _parse_pdf_statement_text
 
 
 class TestTransactionsAndReports(unittest.TestCase):
@@ -73,6 +74,23 @@ class TestTransactionsAndReports(unittest.TestCase):
         self.assertGreater(report["summary"]["avg_income"], 0)
         self.assertGreater(report["summary"]["financial_health_score"], 50)
         self.assertTrue(len(report["insights"]) > 0)
+
+    def test_parse_text_extracted_from_pdf_statement(self):
+        statement_text = """
+            Account Statement
+            Date Narration Debit Credit Balance
+            12/09/2026 UPI/428192384/SWIGGY/Paytm 450.00 45,200.00
+            01/09/2026 NEFT CR-TECH CORP SALARY 65,000.00 110,200.00
+        """
+        parsed = _parse_pdf_statement_text(statement_text)
+
+        self.assertEqual(len(parsed), 2)
+        self.assertEqual(parsed[0]["date"], "2026-09-12")
+        self.assertEqual(parsed[0]["amount"], 450.0)
+        self.assertEqual(parsed[0]["category"], "Food")
+        self.assertEqual(parsed[1]["amount"], 65000.0)
+        self.assertEqual(parsed[1]["type"], "income")
+        self.assertEqual(parsed[1]["category"], "Salary")
 
 
 if __name__ == "__main__":

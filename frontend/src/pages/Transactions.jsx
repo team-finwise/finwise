@@ -10,6 +10,7 @@ import {
   seedSampleTransactions,
   resetAllTransactions,
   importBankStatement,
+  importPdfBankStatement,
   parseBankSms,
   seedBankPassbook,
 } from '../lib/api';
@@ -68,13 +69,15 @@ export default function Transactions() {
 
   // Import Statement Modal
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importTab, setImportTab] = useState('csv'); // 'csv' | 'sms' | 'presets'
+  const [importTab, setImportTab] = useState('csv'); // 'csv' | 'pdf' | 'sms' | 'presets'
   const [csvText, setCsvText] = useState('');
   const [smsText, setSmsText] = useState('');
+  const [pdfFile, setPdfFile] = useState(null);
   const [importLoading, setImportLoading] = useState(false);
   const [importMessage, setImportMessage] = useState('');
   const [importError, setImportError] = useState('');
   const fileInputRef = useRef(null);
+  const pdfFileInputRef = useRef(null);
 
   async function loadData() {
     setLoading(true);
@@ -192,6 +195,24 @@ export default function Transactions() {
     reader.readAsText(file);
   }
 
+  function handlePdfFileUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setPdfFile(null);
+      setImportError('Please choose a PDF bank statement.');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      setPdfFile(null);
+      setImportError('PDF statements must be 15 MB or smaller.');
+      return;
+    }
+    setPdfFile(file);
+    setImportError('');
+    setImportMessage(`Ready to import: ${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`);
+  }
+
   async function handleImportCSV() {
     if (!csvText.trim()) {
       setImportError('Please select a CSV file or paste bank statement content.');
@@ -206,6 +227,30 @@ export default function Transactions() {
       setTimeout(() => {
         setShowImportModal(false);
         setCsvText('');
+        loadData();
+      }, 1200);
+    } catch (err) {
+      setImportError(err.message);
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
+  async function handleImportPDF() {
+    if (!pdfFile) {
+      setImportError('Please select a PDF bank statement.');
+      return;
+    }
+    setImportLoading(true);
+    setImportError('');
+    setImportMessage('');
+    try {
+      const res = await importPdfBankStatement(pdfFile);
+      setImportMessage(res.message);
+      setTimeout(() => {
+        setShowImportModal(false);
+        setPdfFile(null);
+        if (pdfFileInputRef.current) pdfFileInputRef.current.value = '';
         loadData();
       }, 1200);
     } catch (err) {
@@ -667,6 +712,7 @@ export default function Transactions() {
             <div style={{ display: 'flex', background: 'var(--bg-raised)', padding: 3, borderRadius: 'var(--radius)', marginBottom: 18 }}>
               {[
                 { id: 'csv', label: 'Upload Bank CSV' },
+                { id: 'pdf', label: 'Upload PDF' },
                 { id: 'sms', label: 'Paste Bank SMS' },
                 { id: 'presets', label: 'Sample Bank Passbook' },
               ].map((tab) => (
@@ -767,7 +813,59 @@ export default function Transactions() {
               </div>
             )}
 
-            {/* Tab 2: SMS Paste */}
+            {/* Tab 2: PDF Upload */}
+            {importTab === 'pdf' && (
+              <div>
+                <div
+                  style={{
+                    border: '2px dashed var(--accent-border)',
+                    borderRadius: 'var(--radius)',
+                    padding: 28,
+                    textAlign: 'center',
+                    marginBottom: 16,
+                    backgroundColor: 'var(--accent-muted)',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => pdfFileInputRef.current?.click()}
+                >
+                  <input
+                    type="file"
+                    ref={pdfFileInputRef}
+                    accept="application/pdf,.pdf"
+                    style={{ display: 'none' }}
+                    onChange={handlePdfFileUpload}
+                  />
+                  <div style={{ color: 'var(--accent)', marginBottom: 8 }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <path d="M8 13h8M8 17h5" />
+                    </svg>
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
+                    {pdfFile ? pdfFile.name : 'Click to select a bank statement PDF'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5 }}>
+                    Text-based PDF statements up to 15 MB · Password-protected and scanned PDFs are not supported
+                  </div>
+                </div>
+
+                <div style={{ padding: '11px 13px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.5 }}>
+                  Finwise extracts dated rows, narration, debit/credit amounts, and categorizes each transaction automatically. Imported transactions immediately update your register and financial totals.
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+                  <button className="btn btn-secondary" onClick={() => setShowImportModal(false)}>
+                    Cancel
+                  </button>
+                  <button className="btn btn-primary" onClick={handleImportPDF} disabled={importLoading || !pdfFile}>
+                    {importLoading ? 'Extracting transactions...' : 'Extract & Import PDF'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 3: SMS Paste */}
             {importTab === 'sms' && (
               <div>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
@@ -795,7 +893,7 @@ export default function Transactions() {
               </div>
             )}
 
-            {/* Tab 3: Presets */}
+            {/* Tab 4: Presets */}
             {importTab === 'presets' && (
               <div>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>

@@ -382,27 +382,45 @@ export default function Profile() {
 
   return (
     <Layout
-      title="Financial Profile Setup"
-      subtitle={`Step ${formStep} of 4 — ${stepTitles[formStep - 1]}`}
+      title="A clearer picture of your money."
+      subtitle="Set up your Finwise profile in a few thoughtful steps. Your information stays in this browser session."
     >
-      <div style={{ maxWidth: 640, margin: '0 auto 32px' }}>
-        <StepIndicator current={formStep} />
-      </div>
+      <div className="profile-layout">
+        <section className="profile-form-panel">
+          <div className="setup-kicker"><span>01</span> Your personal money map</div>
+          <div className="setup-progress-label">Step {formStep} of 4 <b>{stepTitles[formStep - 1]}</b></div>
+          <StepIndicator current={formStep} />
 
-      {formStep === 1 && <Step1 onNext={() => setFormStep(2)} />}
-      {formStep === 2 && (
-        <Step2 onNext={() => setFormStep(3)} onBack={() => setFormStep(1)} />
-      )}
-      {formStep === 3 && (
-        <Step3 onNext={() => setFormStep(4)} onBack={() => setFormStep(2)} />
-      )}
-      {formStep === 4 && (
-        <Step4
-          onSubmit={handleSubmit}
-          onBack={() => setFormStep(3)}
-          loading={loading}
-        />
-      )}
+          {formStep === 1 && <Step1 onNext={() => setFormStep(2)} />}
+          {formStep === 2 && (
+            <Step2 onNext={() => setFormStep(3)} onBack={() => setFormStep(1)} />
+          )}
+          {formStep === 3 && (
+            <Step3 onNext={() => setFormStep(4)} onBack={() => setFormStep(2)} />
+          )}
+          {formStep === 4 && (
+            <Step4
+              onSubmit={handleSubmit}
+              onBack={() => setFormStep(3)}
+              loading={loading}
+            />
+          )}
+        </section>
+
+        <aside className="profile-visual" aria-label="Financial planning preview">
+          <div className="visual-orbit orbit-one" />
+          <div className="visual-orbit orbit-two" />
+          <div className="visual-summary-card">
+            <span className="visual-label">YOUR NEXT CHAPTER</span>
+            <strong>Small choices.<br />A complete view.</strong>
+            <p>Bring income, spending, savings, and your next big goal into focus.</p>
+            <div className="visual-progress"><i /></div>
+            <div className="visual-stat-row"><span>Financial confidence</span><b>Building</b></div>
+          </div>
+          <div className="visual-mini-card visual-income"><span>Monthly view</span><strong>One place</strong><i>↗</i></div>
+          <div className="visual-mini-card visual-goal"><span>Personal goal</span><strong>Made possible</strong><i>◎</i></div>
+        </aside>
+      </div>
     </Layout>
   );
 }

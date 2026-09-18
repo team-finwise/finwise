@@ -30,6 +30,7 @@ except ImportError:
             calculate_goal_progress,
             calculate_goal_plan
         )
+        # pyrefly: ignore [missing-import]
         from what_if import calculate_what_if
 
 

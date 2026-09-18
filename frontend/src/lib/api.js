@@ -188,6 +188,41 @@ export async function importBankStatement(csvText) {
   return res.json();
 }
 
+async function authRequest(path, payload) {
+  const res = await fetch(`${API_BASE_URL}/api/auth/${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.detail || 'Authentication request failed.');
+  }
+  return res.json();
+}
+
+export function signUpAccount(payload) {
+  return authRequest('signup', payload);
+}
+
+export function loginAccount(payload) {
+  return authRequest('login', payload);
+}
+
+export async function importPdfBankStatement(file) {
+  const formData = new FormData();
+  formData.append('statement', file);
+  const res = await fetch(`${API_BASE_URL}/api/transactions/import-pdf-statement`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to import PDF statement (${res.status})`);
+  }
+  return res.json();
+}
+
 export async function parseBankSms(smsText) {
   const res = await fetch(`${API_BASE_URL}/api/transactions/parse-sms`, {
     method: 'POST',

@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from backend.database import init_db
 from backend.transactions.router import router as transactions_router
 from backend.reports.router import router as reports_router
+from backend.auth.router import router as auth_router
 
 try:
     from finwise_agent.agent import run_agent
@@ -43,6 +44,7 @@ app.add_middleware(
 # Include modules routers
 app.include_router(transactions_router)
 app.include_router(reports_router)
+app.include_router(auth_router)
 
 
 @app.on_event("startup")
