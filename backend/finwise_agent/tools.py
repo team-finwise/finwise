@@ -1,3 +1,12 @@
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+for p in [BASE_DIR, ROOT_DIR]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
 from strands import tool
 
 try:
@@ -22,6 +31,7 @@ except ImportError:
             calculate_goal_plan
         )
         from what_if import calculate_what_if
+
 
 
 @tool
