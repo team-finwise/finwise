@@ -34,8 +34,8 @@ export default function Dashboard() {
     progress.progressPercentage >= 75
       ? 'green'
       : progress.progressPercentage >= 40
-      ? 'blue'
-      : 'amber';
+        ? 'blue'
+        : 'amber';
 
   const greeting = userName?.trim() ? `Good morning, ${userName}` : 'Good morning';
 
@@ -61,10 +61,10 @@ export default function Dashboard() {
             label="Monthly Income"
             value={formatRupee(profile.income)}
             sub="Gross monthly take-home"
-            status="blue"
+            gradient="accent"
             icon={
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="5" width="20" height="14" rx="2" />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="5" width="20" height="14" rx="3" />
                 <line x1="2" y1="10" x2="22" y2="10" />
               </svg>
             }
@@ -74,9 +74,9 @@ export default function Dashboard() {
             label="Total Expenses"
             value={formatRupee(snapshot.totalMonthlyExpenses)}
             sub="Living costs + debt payments"
-            status="amber"
+            gradient="peach"
             icon={
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
                 <polyline points="17 18 23 18 23 12" />
               </svg>
@@ -87,10 +87,10 @@ export default function Dashboard() {
             label="Monthly Surplus"
             value={formatRupee(Math.abs(snapshot.monthlySurplus))}
             sub={snapshot.cashFlowStatus === 'surplus' ? 'Net positive cash flow' : 'Monthly cash shortfall'}
-            status={surplusStatus}
+            gradient={snapshot.cashFlowStatus === 'surplus' ? 'mint' : 'red'}
             badge={snapshot.cashFlowStatus === 'surplus' ? 'Surplus' : 'Deficit'}
             icon={
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
@@ -101,10 +101,10 @@ export default function Dashboard() {
             label="Savings Rate"
             value={formatPercent(snapshot.savingsRate)}
             sub={`Goal target: ${formatRupee(profile.savingsContribution)}/mo`}
-            status={savingsStatus}
+            gradient="sand"
             badge={savingsStatus === 'green' ? 'Healthy' : savingsStatus === 'amber' ? 'Moderate' : 'Low'}
             icon={
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>

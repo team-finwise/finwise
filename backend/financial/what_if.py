@@ -1,7 +1,10 @@
 try:
-    from financial.calculations import calculate_financial_snapshot
+    from backend.financial.calculations import calculate_financial_snapshot
 except ImportError:
-    from calculations import calculate_financial_snapshot
+    try:
+        from financial.calculations import calculate_financial_snapshot
+    except ImportError:
+        from calculations import calculate_financial_snapshot
 def calculate_what_if(
     income,
     housing,

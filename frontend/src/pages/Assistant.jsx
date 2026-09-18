@@ -3,6 +3,60 @@ import Layout from '../components/Layout';
 import useStore from '../store/useStore';
 import { checkBackendHealth, sendChatMessage } from '../lib/api';
 
+const THINKING_PHASES = [
+  { text: 'Analysing your finances',        startAt: 0  },
+  { text: 'Running financial calculations', startAt: 9  },
+  { text: 'Consulting the model',           startAt: 18 },
+  { text: 'Generating response',            startAt: 26 },
+];
+
+function ThinkingIndicator() {
+  const [elapsed, setElapsed]   = useState(0);
+  const [dotCount, setDotCount] = useState(1);
+
+  useEffect(() => {
+    const tick = setInterval(() => setElapsed((s) => s + 1), 1000);
+    const dots = setInterval(() => setDotCount((d) => (d >= 3 ? 1 : d + 1)), 500);
+    return () => { clearInterval(tick); clearInterval(dots); };
+  }, []);
+
+  let phaseIndex = 0;
+  for (let i = 0; i < THINKING_PHASES.length; i++) {
+    if (elapsed >= THINKING_PHASES[i].startAt) phaseIndex = i;
+  }
+
+  const phase    = THINKING_PHASES[phaseIndex];
+  const showHint = elapsed >= 20;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <span
+        key={phaseIndex}
+        style={{
+          fontSize: '13px',
+          fontWeight: 500,
+          color: 'var(--text-secondary, #6b7280)',
+          animation: 'fadeInPhase 0.5s ease',
+          letterSpacing: '0.01em',
+        }}
+      >
+        {phase.text}{'.'.repeat(dotCount)}
+      </span>
+
+      <span style={{ fontSize: '11px', color: 'var(--text-muted, #9ca3af)', letterSpacing: '0.01em' }}>
+        {showHint ? 'Still working, model is processing your data...' : 'This may take a few seconds'}
+      </span>
+
+      <style>{`
+        @keyframes fadeInPhase {
+          from { opacity: 0; transform: translateY(5px); }
+          to   { opacity: 1; transform: translateY(0);   }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 const SUGGESTED_PROMPTS = [
   "Calculate my current monthly financial snapshot and savings rate.",
   "How can I reach my financial goal faster?",
@@ -115,11 +169,8 @@ export default function Assistant() {
           ))}
 
           {loading && (
-            <div className="chat-bubble assistant" style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>
-              🤖 Strands Agent is reasoning and executing financial tools with Ollama (llama3.1)...
-              <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.85, fontWeight: 500 }}>
-                Running 8B model on CPU — response will appear shortly...
-              </div>
+            <div className="chat-bubble assistant">
+              <ThinkingIndicator />
             </div>
           )}
 

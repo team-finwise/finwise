@@ -1,11 +1,27 @@
 from strands import tool
 
-from financial.calculations import (
-    calculate_financial_snapshot,
-    calculate_goal_progress,
-    calculate_goal_plan
-)
-from financial.what_if import calculate_what_if
+try:
+    from backend.financial.calculations import (
+        calculate_financial_snapshot,
+        calculate_goal_progress,
+        calculate_goal_plan
+    )
+    from backend.financial.what_if import calculate_what_if
+except ImportError:
+    try:
+        from financial.calculations import (
+            calculate_financial_snapshot,
+            calculate_goal_progress,
+            calculate_goal_plan
+        )
+        from financial.what_if import calculate_what_if
+    except ImportError:
+        from calculations import (
+            calculate_financial_snapshot,
+            calculate_goal_progress,
+            calculate_goal_plan
+        )
+        from what_if import calculate_what_if
 
 
 @tool

@@ -1,9 +1,17 @@
-from finwise_agent.tools import (
-    financial_snapshot,
-    goal_progress,
-    goal_plan,
-    what_if_analysis,
-)
+try:
+    from backend.finwise_agent.tools import (
+        financial_snapshot,
+        goal_progress,
+        goal_plan,
+        what_if_analysis,
+    )
+except ImportError:
+    from finwise_agent.tools import (
+        financial_snapshot,
+        goal_progress,
+        goal_plan,
+        what_if_analysis,
+    )
 
 
 print("Financial Snapshot:")
