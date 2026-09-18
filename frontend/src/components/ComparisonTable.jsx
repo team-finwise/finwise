@@ -1,4 +1,5 @@
 import { formatRupee, formatPercent, formatDelta } from '../lib/formatters';
+import AnimatedNumber from './AnimatedNumber';
 
 const ROWS = [
   { key: 'totalMonthlyExpenses', label: 'Total Monthly Expenses', format: formatRupee },
@@ -50,13 +51,19 @@ export default function ComparisonTable({ current, projected }) {
                   {cur !== null && cur !== undefined ? row.format(cur) : '—'}
                 </td>
                 <td className="text-right num" style={{ fontWeight: 600 }}>
-                  {pro !== null && pro !== undefined ? row.format(pro) : '—'}
+                  {pro !== null && pro !== undefined ? (
+                    <AnimatedNumber value={pro} format={row.format} />
+                  ) : '—'}
                 </td>
-                <td className="text-right num" style={{ color: deltaColor, fontWeight: 600 }}>
+                <td
+                  className="text-right num"
+                  style={{ color: deltaColor, fontWeight: 600, transition: 'color 300ms ease' }}
+                >
                   {delta === 0 ? '—' : (
-                    <span>
-                      {delta > 0 ? '+' : ''}{row.format(delta)}
-                    </span>
+                    <AnimatedNumber
+                      value={delta}
+                      format={(d) => `${d > 0 ? '+' : ''}${row.format(d)}`}
+                    />
                   )}
                 </td>
               </tr>
