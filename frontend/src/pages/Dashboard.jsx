@@ -5,6 +5,7 @@ import MetricCard from '../components/MetricCard';
 import ProgressBar from '../components/ProgressBar';
 import ExpenseBreakdown from '../components/ExpenseBreakdown';
 import AIInsightCard from '../components/AIInsightCard';
+import AnimatedNumber from '../components/AnimatedNumber';
 import useStore from '../store/useStore';
 import {
   formatRupee,
@@ -59,7 +60,7 @@ export default function Dashboard() {
         <div className="grid-4">
           <MetricCard
             label="Monthly Income"
-            value={formatRupee(profile.income)}
+            value={<AnimatedNumber value={profile.income} format={formatRupee} />}
             sub="Gross monthly take-home"
             gradient="accent"
             icon={
@@ -72,7 +73,7 @@ export default function Dashboard() {
 
           <MetricCard
             label="Total Expenses"
-            value={formatRupee(snapshot.totalMonthlyExpenses)}
+            value={<AnimatedNumber value={snapshot.totalMonthlyExpenses} format={formatRupee} />}
             sub="Living costs + debt payments"
             gradient="peach"
             icon={
@@ -85,7 +86,7 @@ export default function Dashboard() {
 
           <MetricCard
             label="Monthly Surplus"
-            value={formatRupee(Math.abs(snapshot.monthlySurplus))}
+            value={<AnimatedNumber value={Math.abs(snapshot.monthlySurplus)} format={formatRupee} />}
             sub={snapshot.cashFlowStatus === 'surplus' ? 'Net positive cash flow' : 'Monthly cash shortfall'}
             gradient={snapshot.cashFlowStatus === 'surplus' ? 'mint' : 'red'}
             badge={snapshot.cashFlowStatus === 'surplus' ? 'Surplus' : 'Deficit'}
@@ -99,7 +100,7 @@ export default function Dashboard() {
 
           <MetricCard
             label="Savings Rate"
-            value={formatPercent(snapshot.savingsRate)}
+            value={<AnimatedNumber value={snapshot.savingsRate} format={formatPercent} />}
             sub={`Goal target: ${formatRupee(profile.savingsContribution)}/mo`}
             gradient="sand"
             badge={savingsStatus === 'green' ? 'Healthy' : savingsStatus === 'amber' ? 'Moderate' : 'Low'}

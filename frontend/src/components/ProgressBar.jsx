@@ -21,7 +21,7 @@ export default function ProgressBar({ value, color = 'blue', label }) {
     >
       <div
         className={`progress-bar-fill ${colorClass}`}
-        style={{ width: `${clamped}%` }}
+        style={{ '--progress': clamped / 100 }}
       />
     </div>
   );

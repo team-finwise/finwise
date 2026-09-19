@@ -139,6 +139,7 @@ export default function Reports() {
         /* Empty State */
         <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
           <div
+            className="empty-state-icon"
             style={{
               width: 56,
               height: 56,
@@ -272,6 +273,7 @@ export default function Reports() {
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, width: '100%', justifyContent: 'center' }}>
                         {/* Income bar */}
                         <div
+                          className="report-bar"
                           title={`Inflow: ${formatRupee(t.income)}`}
                           style={{
                             width: '28%',
@@ -284,6 +286,7 @@ export default function Reports() {
                         />
                         {/* Outflow bar */}
                         <div
+                          className="report-bar"
                           title={`Outflow: ${formatRupee(t.total_outflow)}`}
                           style={{
                             width: '28%',
@@ -296,6 +299,7 @@ export default function Reports() {
                         />
                         {/* Surplus bar */}
                         <div
+                          className="report-bar"
                           title={`Surplus: ${formatRupee(t.surplus)}`}
                           style={{
                             width: '28%',
@@ -358,6 +362,7 @@ export default function Reports() {
                     {/* Track */}
                     <div style={{ height: 8, backgroundColor: 'var(--bg-raised)', borderRadius: 4, overflow: 'hidden' }}>
                       <div
+                        className="report-progress-fill"
                         style={{
                           height: '100%',
                           width: `${Math.min(100, Math.max(5, (t.savings_rate / 30) * 100))}%`,
@@ -402,6 +407,7 @@ export default function Reports() {
                     </div>
                     <div style={{ height: 6, backgroundColor: 'var(--bg-raised)', borderRadius: 3, overflow: 'hidden' }}>
                       <div
+                        className="report-progress-fill"
                         style={{
                           height: '100%',
                           width: `${c.percentage}%`,

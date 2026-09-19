@@ -22,7 +22,7 @@ export default function AIInsightCard({ results, profile }) {
             Financial Insights
           </span>
         </div>
-        <p className="ai-insight-body">
+        <p className="ai-insight-body ai-insight-reveal">
           Complete your financial profile to receive personalized observations about your savings, debt ratio, and cash flow.
         </p>
       </div>
@@ -94,16 +94,16 @@ export default function AIInsightCard({ results, profile }) {
         </span>
       </div>
 
-      <div className="ai-insight-body">
+      <div className="ai-insight-body ai-insight-reveal">
         <p style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{observation}</p>
       </div>
 
-      <div className="ai-insight-section">
+      <div className="ai-insight-section ai-insight-reveal">
         <div className="ai-insight-subtitle">Why This Matters</div>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{rationale}</p>
       </div>
 
-      <div className="ai-insight-section">
+      <div className="ai-insight-section ai-insight-reveal">
         <div className="ai-insight-subtitle">Suggested Action</div>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
           {recommendation}
@@ -111,7 +111,7 @@ export default function AIInsightCard({ results, profile }) {
       </div>
 
       {largestExpenseCategory && totalMonthlyExpenses > 0 && (
-        <div className="ai-insight-section">
+        <div className="ai-insight-section ai-insight-reveal">
           <div className="ai-insight-subtitle">Spending Insight</div>
           <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
             Largest expense: <strong style={{ color: 'var(--text-primary)', textTransform: 'capitalize' }}>{largestExpenseCategory}</strong> ({formatRupee(largestExpenseAmount)} / {formatPercent(largestExpenseAmount / totalMonthlyExpenses)} of monthly spending).
