@@ -7,13 +7,22 @@ const features = [
   { number: '03', icon: '✦', title: 'Ask smarter questions', text: 'Use your personal AI guide to understand trade-offs before you make a move.' },
 ];
 
+const offerings = [
+  { icon: '01', visual: 'profile', title: 'Personal financial profile', text: 'Bring your income, savings, regular expenses and debt into one organised view.' },
+  { icon: '02', visual: 'expenses', title: 'Expense intelligence', text: 'Understand where your money goes with clear categories, trends and spending breakdowns.' },
+  { icon: '03', visual: 'goals', title: 'Goal planning', text: 'Set a meaningful target, choose a timeline and see the monthly progress that keeps it within reach.' },
+  { icon: '04', visual: 'scenario', title: 'What-if scenarios', text: 'Explore changes to income, expenses or savings before you commit to a financial decision.' },
+  { icon: '05', visual: 'reports', title: 'Clear reports', text: 'Turn your financial activity into simple, useful summaries that make your next move easier.' },
+  { icon: '06', visual: 'guide', title: 'AI guidance', text: 'Ask everyday money questions and receive practical, personalised explanations for your situation.' },
+];
+
 export default function Landing() {
   return (
     <div className="landing">
       <div className="landing-offer">A calmer way to grow your money <span>— your first plan is free</span></div>
       <header className="landing-nav">
         <Link to="/" className="landing-brand"><b>✦</b> fin<span>wise</span></Link>
-        <nav><a href="#features">Features</a><a href="#how-it-works">How it works</a><a href="#security">Privacy</a></nav>
+        <nav><a href="#offerings">What we offer</a><a href="#how-it-works">How it works</a><a href="#security">Privacy</a></nav>
         <div className="landing-nav-actions"><Link className="login-link" to="/login">Sign in</Link><Link className="landing-button small" to="/signup">Start free</Link></div>
       </header>
 
@@ -36,6 +45,23 @@ export default function Landing() {
           <div className="feature-grid">
             {features.map((feature, index) => <motion.article key={feature.number} className="feature-card" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: .25 }} transition={{ duration: .55, delay: index * .12 }}><div><b>{feature.number}</b><i>{feature.icon}</i></div><h3>{feature.title}</h3><p>{feature.text}</p><span>Discover more <b>→</b></span></motion.article>)}
           </div>
+        </section>
+
+        <section id="offerings" className="offerings-section">
+          <div className="offerings-heading">
+            <p>ONE PLACE. A CLEARER PLAN.</p>
+            <h2>Everything you need to make <em>better money decisions.</em></h2>
+            <span>Finwise connects the day-to-day details with the bigger picture, so you can spend with awareness, plan with purpose, and move forward with confidence.</span>
+          </div>
+          <div className="offerings-grid">
+            {offerings.map((offering, index) => <motion.article key={offering.title} className="offering-card" initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: .2 }} transition={{ duration: .45, delay: index * .06 }}>
+              <div className={`offering-preview preview-${offering.visual}`} aria-hidden="true"><i /><i /><i /><b /></div>
+              <span className="offering-number">{offering.icon}</span>
+              <h3>{offering.title}</h3>
+              <p>{offering.text}</p>
+            </motion.article>)}
+          </div>
+          <div className="offerings-cta"><p><b>Built for your real life.</b> Whether you are getting started, paying down debt, saving for a milestone or simply looking for a clearer view, Finwise meets you where you are.</p><Link className="landing-button" to="/signup">Start your free plan <span>→</span></Link></div>
         </section>
 
         <section id="how-it-works" className="steps-section"><div><p>YOUR FIRST 5 MINUTES</p><h2>A plan that starts<br />with <em>you.</em></h2></div><ol><li><b>1</b><span>Tell us what matters</span><p>Add your income, essentials, and the goal that is calling you forward.</p></li><li><b>2</b><span>Find your clear path</span><p>See your money pattern and the choices that make the biggest difference.</p></li><li><b>3</b><span>Move with confidence</span><p>Check in as life changes and keep your next move beautifully simple.</p></li></ol></section>
