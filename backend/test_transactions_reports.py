@@ -1,6 +1,7 @@
 import unittest
 import os
 import sys
+from unittest.mock import patch
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
@@ -13,7 +14,7 @@ from backend.database import init_db, get_db
 from backend.transactions import service as trans_service
 from backend.transactions.models import TransactionCreate, TransactionUpdate
 from backend.reports import service as report_service
-from backend.transactions.bank_parser import _parse_pdf_statement_text
+from backend.transactions.bank_parser import _parse_pdf_statement_text, _pdf_text_with_ocr_fallback
 
 
 class TestTransactionsAndReports(unittest.TestCase):
@@ -91,6 +92,37 @@ class TestTransactionsAndReports(unittest.TestCase):
         self.assertEqual(parsed[1]["amount"], 65000.0)
         self.assertEqual(parsed[1]["type"], "income")
         self.assertEqual(parsed[1]["category"], "Salary")
+
+    def test_parse_common_spaced_and_year_first_pdf_dates(self):
+        statement_text = """
+            Date Description Debit Credit Balance
+            12 Sep 2026 UPI/0123/UBER INDIA 325.50 DR 42,110.00
+            2026/09/13 ACME CONSULTING PAYMENT 12,500.00 CR 54,610.00
+        """
+        parsed = _parse_pdf_statement_text(statement_text)
+
+        self.assertEqual(len(parsed), 2)
+        self.assertEqual(parsed[0]["date"], "2026-09-12")
+        self.assertEqual(parsed[0]["amount"], 325.50)
+        self.assertEqual(parsed[0]["type"], "expense")
+        self.assertEqual(parsed[1]["date"], "2026-09-13")
+        self.assertEqual(parsed[1]["amount"], 12500.00)
+        self.assertEqual(parsed[1]["type"], "income")
+
+    def test_pdf_uses_local_ocr_only_when_native_text_is_missing(self):
+        with patch(
+            "backend.transactions.bank_parser._extract_scanned_pdf_text",
+            return_value="12/09/2026 UPI/123/UBER 325.00 DR 42,110.00",
+        ) as ocr:
+            self.assertEqual(
+                _pdf_text_with_ocr_fallback("", b"scanned-pdf"),
+                "12/09/2026 UPI/123/UBER 325.00 DR 42,110.00",
+            )
+            ocr.assert_called_once_with(b"scanned-pdf")
+
+        with patch("backend.transactions.bank_parser._extract_scanned_pdf_text") as ocr:
+            self.assertEqual(_pdf_text_with_ocr_fallback("native PDF text", b"pdf"), "native PDF text")
+            ocr.assert_not_called()
 
 
 if __name__ == "__main__":

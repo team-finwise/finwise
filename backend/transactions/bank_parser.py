@@ -1,9 +1,14 @@
 import re
 import csv
 import io
+import os
+import pytesseract
 from datetime import datetime
 from typing import List, Dict, Any, Tuple, Optional
-
+if os.name == "nt":
+    tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    if os.path.exists(tesseract_path):
+        pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
 CATEGORY_KEYWORDS = {
     "Food": [
@@ -289,7 +294,12 @@ def parse_csv_statement(csv_text: str) -> List[Dict[str, Any]]:
 # helpers below turn that text into transaction-sized rows before applying the
 # same narration/category rules used by CSV and SMS imports.
 PDF_DATE_PATTERN = re.compile(
-    r"(?<!\d)(?:0?[1-9]|[12]\d|3[01])[-/](?:0?[1-9]|1[0-2]|[A-Za-z]{3})[-/](?:\d{2}|\d{4})(?!\d)",
+    r"(?<!\d)(?:"
+    r"\d{4}[-/](?:0?[1-9]|1[0-2])[-/](?:0?[1-9]|[12]\d|3[01])"
+    r"|(?:0?[1-9]|[12]\d|3[01])[-/](?:0?[1-9]|1[0-2])[-/](?:\d{2}|\d{4})"
+    r"|(?:0?[1-9]|[12]\d|3[01])[-/](?:0?[1-9]|1[0-2])"
+    r"|(?:0?[1-9]|[12]\d|3[01])\s+[A-Za-z]{3,9}\s+(?:\d{2}|\d{4})"
+    r")(?!\d)",
     re.IGNORECASE,
 )
 PDF_AMOUNT_PATTERN = re.compile(
@@ -297,23 +307,101 @@ PDF_AMOUNT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# OCR is only a fallback for image-only PDFs. Keeping the page limit modest
+# prevents a single upload from consuming excessive CPU on the local server.
+PDF_OCR_MAX_PAGES = int(os.getenv("FINWISE_PDF_OCR_MAX_PAGES", "15"))
+
+
+def _extract_scanned_pdf_text(pdf_bytes: bytes) -> str:
+    """Render an image-only PDF in memory and extract its text with Tesseract."""
+    try:
+        import fitz
+        from PIL import Image
+    except ImportError as exc:
+        raise RuntimeError(
+            "Scanned-PDF OCR is not installed. Install the project requirements and try again."
+        ) from exc
+
+    try:
+        pytesseract.get_tesseract_version()
+    except pytesseract.TesseractNotFoundError as exc:
+        raise RuntimeError(
+            "Scanned-PDF OCR needs Tesseract installed on this server. "
+            "Install Tesseract OCR and make sure its executable is on PATH."
+        ) from exc
+
+    try:
+        with fitz.open(stream=pdf_bytes, filetype="pdf") as document:
+            if document.page_count > PDF_OCR_MAX_PAGES:
+                raise ValueError(
+                    f"Scanned PDF statements are limited to {PDF_OCR_MAX_PAGES} pages. "
+                    "Please upload a shorter statement."
+                )
+
+            pages = []
+            for page in document:
+                # 144 DPI provides readable statement text without creating
+                # unnecessarily large images or writing user data to disk.
+                pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2), colorspace=fitz.csGRAY, alpha=False)
+                image = Image.open(io.BytesIO(pixmap.tobytes("png")))
+                pages.append(pytesseract.image_to_string(image, config="--oem 3 --psm 6"))
+            return "\n".join(pages)
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError("We could not read this scanned PDF. Please upload a clear bank statement PDF.") from exc
+
+
+def _pdf_text_with_ocr_fallback(extracted_text: str, pdf_bytes: bytes) -> str:
+    """Use native PDF text when available, falling back to local OCR only when needed."""
+    return extracted_text if extracted_text.strip() else _extract_scanned_pdf_text(pdf_bytes)
+
 
 def _normalise_statement_date(value: str) -> Optional[str]:
-    """Return an ISO date for the common date formats used in Indian statements."""
-    value = value.strip()
-    for fmt in (
-        "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d/%m/%y",
-        "%d-%b-%Y", "%d-%b-%y", "%d/%b/%Y", "%d/%b/%y",
-    ):
+    """Return an ISO date for common statement date formats."""
+    value = re.sub(r"\s+", " ", value.strip())
+
+    formats_with_year = (
+        "%Y-%m-%d",
+        "%Y/%m/%d",
+        "%d/%m/%Y",
+        "%d-%m-%Y",
+        "%d/%m/%y",
+        "%d-%b-%Y",
+        "%d-%b-%y",
+        "%d/%b/%Y",
+        "%d/%b/%y",
+        "%d %b %Y",
+        "%d %b %y",
+        "%d %B %Y",
+        "%d %B %y",
+    )
+
+    for fmt in formats_with_year:
         try:
             return datetime.strptime(value, fmt).strftime("%Y-%m-%d")
         except ValueError:
             continue
-    return None
 
+    # Some bank PDFs omit the year from transaction dates.
+    for fmt in ("%d/%m", "%d-%m"):
+        try:
+            parsed = datetime.strptime(value, fmt)
+            return parsed.replace(year=datetime.now().year).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+
+    return None
 
 def _pdf_rows_from_text(text: str) -> List[str]:
     """Join wrapped PDF text into rows, with one dated transaction per row."""
+    # Some PDF generators place day, month and year on separate text lines.
+    # Rejoin that sequence before locating the start of each transaction.
+    text = re.sub(
+        r"\b(\d{1,2})\s*\n\s*([A-Za-z]{3,9})\s*\n\s*(\d{2,4})\b",
+        r"\1 \2 \3",
+        text,
+    )
     rows: List[str] = []
     current = ""
     for raw_line in text.splitlines():
@@ -332,8 +420,9 @@ def _pdf_rows_from_text(text: str) -> List[str]:
 
 
 def _parse_pdf_statement_text(text: str) -> List[Dict[str, Any]]:
-    """Parse text extracted from a bank-statement PDF into transaction dicts."""
+    """Parse common bank statement PDF rows with debit, credit and balance columns."""
     parsed: List[Dict[str, Any]] = []
+
     for row in _pdf_rows_from_text(text):
         date_match = PDF_DATE_PATTERN.search(row)
         if not date_match:
@@ -341,53 +430,62 @@ def _parse_pdf_statement_text(text: str) -> List[Dict[str, Any]]:
 
         date_value = _normalise_statement_date(date_match.group(0))
         after_date = row[date_match.end():].strip(" |:-")
+
         if not date_value or not after_date:
             continue
 
-        amount_candidates = []
+        amounts = []
+
         for match in PDF_AMOUNT_PATTERN.finditer(after_date):
-            raw = re.sub(r"(?i)(₹|rs\.?|inr|,|\s)", "", match.group(0))
+            raw = match.group(0)
+            cleaned = re.sub(r"(?i)(₹|rs\.?|inr|,|\s)", "", raw)
+
             try:
-                value = abs(float(raw))
+                value = abs(float(cleaned))
             except ValueError:
                 continue
-            # Reference / UPI IDs can look like numbers after text extraction;
-            # a long unformatted integer is not a realistic statement amount.
-            digits_only = re.sub(r"\D", "", raw)
-            if len(digits_only) >= 7 and "." not in raw and "," not in match.group(0):
-                continue
-            amount_candidates.append((match, value))
 
-        if not amount_candidates:
+            if value > 0:
+                amounts.append((match, value))
+
+        if not amounts:
             continue
 
-        # A PDF table usually ends with a running balance. The numeric value
-        # immediately before it is the transaction amount. This avoids
-        # importing a running balance as spend/income.
-        amount_match, amount = amount_candidates[-2] if len(amount_candidates) >= 2 else amount_candidates[0]
-        if amount <= 0:
-            continue
+        # Standard statement format:
+        # Date | Description | Debit/Credit | Balance
+        if len(amounts) >= 2:
+            transaction_match, amount = amounts[-2]
+            balance_match, balance = amounts[-1]
+        else:
+            transaction_match, amount = amounts[0]
 
-        raw_narration = after_date[:amount_match.start()].strip(" |:-")
+        raw_narration = after_date[:transaction_match.start()].strip(" |:-")
+
         if not raw_narration:
-            # Some PDF generators put narration after amount. Retain the rest
-            # of the row instead of silently discarding that transaction.
-            raw_narration = after_date[amount_match.end():].strip(" |:-")
-        if not raw_narration:
-            raw_narration = "Bank Transaction"
+            continue
 
         clean_name, category, tx_type, method = clean_narration(raw_narration)
+
         row_lower = row.lower()
-        is_credit = bool(re.search(r"\b(?:cr|credit|credited)\b", row_lower))
-        is_debit = bool(re.search(r"\b(?:dr|debit|debited)\b", row_lower))
-        if is_credit:
+
+        # Explicit credit/income transactions.
+        if "credit" in row_lower or "deposit" in row_lower or "interestcredit" in row_lower:
             tx_type = "income"
             if category == "Other":
-                category = "Salary"
-        elif is_debit and tx_type == "income":
+                category = "Salary" if "salary" in row_lower or "payroll" in row_lower else "Other"
+
+        # Withdrawals, purchases, checks and fees are expenses.
+        elif any(
+            keyword in row_lower
+            for keyword in [
+                "purchase",
+                "withdrawal",
+                "check",
+                "service charge",
+                "debit",
+            ]
+        ):
             tx_type = "expense"
-            if category == "Salary":
-                category = "Other"
 
         parsed.append({
             "date": date_value,
@@ -398,8 +496,8 @@ def _parse_pdf_statement_text(text: str) -> List[Dict[str, Any]]:
             "payment_method": method,
             "notes": f"PDF Bank Statement: {row[:180]}",
         })
-    return parsed
 
+    return parsed
 
 def parse_pdf_statement(pdf_bytes: bytes) -> List[Dict[str, Any]]:
     """Extract and parse a text-based PDF bank statement.
@@ -422,8 +520,12 @@ def parse_pdf_statement(pdf_bytes: bytes) -> List[Dict[str, Any]]:
     except Exception as exc:
         raise ValueError("We could not read this PDF. Please upload a valid bank statement PDF.") from exc
 
+    text = _pdf_text_with_ocr_fallback(text, pdf_bytes)
+    print("\n========== PDF EXTRACTED TEXT ==========")
+    print(text[:5000])
+    print("========== END PDF TEXT ==========\n")
     if not text.strip():
-        raise ValueError("No selectable text was found in this PDF. Upload a text-based statement (not a scanned image) or use CSV.")
+        raise ValueError("No text was found in this PDF. Please upload a clear bank statement or use CSV.")
     return _parse_pdf_statement_text(text)
 
 

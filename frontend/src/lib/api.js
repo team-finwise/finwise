@@ -1,7 +1,7 @@
 /**
  * FINWISE API Client
  *
- * Calls the FastAPI backend (http://localhost:8000).
+ * Calls the FastAPI backend (http://localhost:8001).
  * If the backend is not running, falls back gracefully.
  */
 
@@ -12,7 +12,7 @@ import {
   calculateWhatIf,
 } from './calculations.js';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost:8001';
 
 function buildProfile(profile) {
   return {

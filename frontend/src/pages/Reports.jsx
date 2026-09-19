@@ -47,7 +47,7 @@ export default function Reports() {
   }
 
   function handleDownloadCSV() {
-    window.open('http://localhost:8000/api/reports/export', '_blank');
+    window.open('http://localhost:8001/api/reports/export', '_blank');
   }
 
   const hasData = report && report.has_data && report.monthly_trends && report.monthly_trends.length > 0;

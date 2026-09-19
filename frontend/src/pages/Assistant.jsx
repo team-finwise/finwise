@@ -150,9 +150,9 @@ export default function Assistant() {
           {backendStatus.checking ? (
             <span>Checking backend connection...</span>
           ) : backendStatus.online && backendStatus.agent_ready ? (
-            <span><strong>Strands SDK Backend Active:</strong> Connected to FastAPI on port 8000 using local Ollama (llama3.1) &amp; financial calculation tools.</span>
+            <span><strong>Strands SDK Backend Active:</strong> Connected to FastAPI on port 8001 using local Ollama (llama3.1) &amp; financial calculation tools.</span>
           ) : (
-            <span><strong>Backend Offline:</strong> Ensure <code>python server.py</code> is running on port 8000 and Ollama is active.</span>
+            <span><strong>Backend Offline:</strong> Ensure <code>python server.py</code> is running on port 8001 and Ollama is active.</span>
           )}
         </div>
 

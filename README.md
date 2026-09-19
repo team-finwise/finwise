@@ -34,6 +34,10 @@ FINWISE analyzes a user's financial profile and provides an understandable finan
 
 - OpenSearch
 
+## Local scanned-PDF OCR
+
+Finwise uses local Tesseract OCR only when a PDF has no selectable text. Install the Python dependencies with `pip install -r requirements.txt`, then install the free Tesseract executable and ensure it is available on your system `PATH`. Uploaded statements are rendered and processed in memory; they are not sent to a third-party OCR service.
+
 ## Status
 
 🚧 Under development
